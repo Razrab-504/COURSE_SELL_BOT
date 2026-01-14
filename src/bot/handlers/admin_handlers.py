@@ -39,7 +39,7 @@ class SettingsStates(StatesGroup):
 
 @admin_router.message(Command("admin"))
 async def admin_menu(message: Message):
-    await message.answer("Панель администратора:", reply_markup=admin_kbd.admin_main_kbd())
+    await message.answer("Admin panel:", reply_markup=admin_kbd.admin_main_kbd())
 
 
 @admin_router.callback_query(F.data.startswith("admin:"))
@@ -47,7 +47,7 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
     data = query.data or ""
 
     if data == "admin:menu":
-        await query.message.edit_text("Панель администратора:", reply_markup=admin_kbd.admin_main_kbd())
+        await query.message.edit_text("Admin panel:", reply_markup=admin_kbd.admin_main_kbd())
         await query.answer()
         return
 
@@ -62,11 +62,11 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
             )
             revenue = revenue_res.scalar_one() or 0
             text = (
-                f"📊 Статистика\n"
-                f"Пользователей: {users_count}\n"
-                f"Курсов: {courses_count}\n"
-                f"Покупок: {purchases_count}\n"
-                f"Выручка: ${revenue} (USD)\n"
+                f"📊 Statistics\n"
+                f"Users: {users_count}\n"
+                f"Courses: {courses_count}\n"
+                f"Purchases: {purchases_count}\n"
+                f"Revenue: ${revenue} (USD)\n"
             )
         await query.message.edit_text(text, reply_markup=admin_kbd.admin_main_kbd())
         await query.answer()
@@ -85,7 +85,7 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
         has_prev = page > 0
         has_next = (offset + limit) < total
         if not users:
-            await query.message.edit_text("Пользователи не найдены.", reply_markup=admin_kbd.users_page_kbd(page, has_prev, has_next))
+            await query.message.edit_text("Users not found.", reply_markup=admin_kbd.users_page_kbd(page, has_prev, has_next))
             await query.answer()
             return
         msgs = []
@@ -93,7 +93,7 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
             name = f"{u.first_name or ''} {u.last_name or ''}".strip() or "(no name)"
             text = f"ID: {u.id}\nTelegram: {u.telegram_user_id}\nName: {name}\nBanned: {u.is_banned}"
             await query.message.answer(text, reply_markup=admin_kbd.user_detail_kbd(u.id, u.is_banned))
-        await query.message.edit_text("Список пользователей — страница {page+1}", reply_markup=admin_kbd.users_page_kbd(page, has_prev, has_next))
+        await query.message.edit_text("User list — page {page+1}", reply_markup=admin_kbd.users_page_kbd(page, has_prev, has_next))
         await query.answer()
         return
 
@@ -106,7 +106,7 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
                 async with LocalSession() as db:
                     user = await db.get(__import__("src.db.models.users", fromlist=["User"]).User, user_id)
                 if not user:
-                    await query.answer("Пользователь не найден", show_alert=True)
+                    await query.answer("User not found", show_alert=True)
                     return
                 name = f"{user.first_name or ''} {user.last_name or ''}".strip() or "(no name)"
                 text = f"ID: {user.id}\nTelegram: {user.telegram_user_id}\nName: {name}\nBanned: {user.is_banned}"
@@ -117,20 +117,20 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
                 async with LocalSession() as db:
                     user = await set_user_ban(db, user_id, not (await db.get(__import__("src.db.models.users", fromlist=["User"]).User, user_id)).is_banned)
                 if not user:
-                    await query.answer("Ошибка", show_alert=True)
+                    await query.answer("Error", show_alert=True)
                     return
-                await query.message.edit_text(f"Пользователь {user.id} обновлён. Забанен={user.is_banned}", reply_markup=admin_kbd.user_detail_kbd(user.id, user.is_banned))
-                await query.answer("Готово")
+                await query.message.edit_text(f"User {user.id} updated. Banned={user.is_banned}", reply_markup=admin_kbd.user_detail_kbd(user.id, user.is_banned))
+                await query.answer("Done")
                 return
             if action == "message":
                 async with LocalSession() as db:
                     user_obj = await db.get(__import__("src.db.models.users", fromlist=["User"]).User, user_id)
                 if not user_obj:
-                    await query.answer("Пользователь не найден", show_alert=True)
+                    await query.answer("User not found", show_alert=True)
                     return
                 await state.update_data(target_user=user_obj.telegram_user_id, target_db_user=user_obj.id)
                 await state.set_state(BroadcastStates.waiting_message)
-                await query.message.answer("Отправьте текст сообщения пользователю (или прикрепите медиа). Введите /cancel для отмены.")
+                await query.message.answer("Send text message to user (or attach media). Enter /cancel to cancel.")
                 await query.answer()
                 return
 
@@ -139,14 +139,14 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
             from src.db.crud.purchases import get_all_purchases
             purchases = await get_all_purchases(db, offset=0, limit=50)
             if not purchases:
-                await query.message.edit_text("Покупок не найдено.", reply_markup=admin_kbd.admin_main_kbd())
+                await query.message.edit_text("No purchases found.", reply_markup=admin_kbd.admin_main_kbd())
                 await query.answer()
                 return
             lines = []
             for p in purchases:
                 lines.append(f"ID:{p.id} user:{p.user_id} course:{p.course_id} status:{p.status.value} created:{p.created_at}")
             text = "\n".join(lines)
-        await query.message.edit_text("Последние покупки:\n" + text, reply_markup=admin_kbd.admin_main_kbd())
+        await query.message.edit_text("Latest purchases:\n" + text, reply_markup=admin_kbd.admin_main_kbd())
         await query.answer()
         return
 
@@ -154,17 +154,17 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
         async with LocalSession() as db:
             courses = await get_all_courses(db)
         if not courses:
-            await query.message.edit_text("Курсы не найдены.", reply_markup=admin_kbd.admin_main_kbd())
+            await query.message.edit_text("Courses not found.", reply_markup=admin_kbd.admin_main_kbd())
             await query.answer()
             return
-        await query.message.edit_text("Список курсов:", reply_markup=admin_kbd.courses_list_kbd(courses))
+        await query.message.edit_text("List of courses:", reply_markup=admin_kbd.courses_list_kbd(courses))
         await query.answer()
         return
 
     if data == "admin:courses:create":
         await state.set_state(CourseCreateStates.wait_title)
         await state.update_data(course_data={})
-        await query.message.answer("Создание курса — введите название курса:")
+        await query.message.answer("Course creation — enter course title:")
         await query.answer()
         return
 
@@ -172,10 +172,10 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
         async with LocalSession() as db:
             courses = await get_all_courses(db)
         if not courses:
-            await query.message.edit_text("Курсы не найдены.", reply_markup=admin_kbd.admin_main_kbd())
+            await query.message.edit_text("Courses not found.", reply_markup=admin_kbd.admin_main_kbd())
             await query.answer()
             return
-        await query.message.edit_text("Список курсов:", reply_markup=admin_kbd.courses_list_kbd(courses))
+        await query.message.edit_text("List of courses:", reply_markup=admin_kbd.courses_list_kbd(courses))
         await query.answer()
         return
 
@@ -184,7 +184,7 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
         async with LocalSession() as db:
             course = await get_course_by_id(db, course_id)
         if not course:
-            await query.answer("Курс не найден", show_alert=True)
+            await query.answer("Course not found", show_alert=True)
             return
         if getattr(course, "photo_url", None):
             try:
@@ -198,27 +198,27 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
 
     if data.startswith("admin:courses:delete:"):
         course_id = int(data.split(":")[-1])
-        await query.message.edit_text("Вы уверены, что хотите удалить курс?", reply_markup=admin_kbd.confirm_kbd("delete_course", course_id))
+        await query.message.edit_text("Are you sure you want to delete the course?", reply_markup=admin_kbd.confirm_kbd("delete_course", course_id))
         await query.answer()
         return
 
 
     if data == "admin:broadcast":
         await state.set_state(BroadcastStates.waiting_message)
-        await query.message.answer("Отправьте текст рассылки. После отправки вы увидите превью и сможете подтвердить отправку всем пользователям.")
+        await query.message.answer("Send broadcast text. After sending, you will see a preview and can confirm sending to all users.")
         await query.answer()
         return
 
     if data == "admin:settings":
         from src.bot.app_settings import get_currency
         cur = get_currency()
-        await query.message.edit_text("Настройки:", reply_markup=admin_kbd.settings_kbd(cur))
+        await query.message.edit_text("Settings:", reply_markup=admin_kbd.settings_kbd(cur))
         await query.answer()
         return
 
     if data == "admin:settings:currency":
         await state.set_state(SettingsStates.wait_currency)
-        await query.message.answer("Введите символ валюты (например, $):")
+        await query.message.answer("Enter currency symbol (e.g., $):")
         await query.answer()
         return
 
@@ -228,14 +228,14 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
         try:
             ct = ContentType[ct_name]
         except Exception:
-            await query.answer("Неверный тип содержимого", show_alert=True)
+            await query.answer("Invalid content type", show_alert=True)
             return
         data_s = await state.get_data()
         course_data = data_s.get("course_data", {})
         course_data["content_type"] = ct.value
         await state.update_data(course_data=course_data)
         await state.set_state(CourseCreateStates.wait_content)
-        await query.message.answer(f"Тип содержимого установлен: {ct.value}. Теперь отправьте содержимое курса (текст, URL или идентификатор файла).")
+        await query.message.answer(f"Content type set: {ct.value}. Now send the course content (text, URL or file ID).")
         await query.answer()
         return
     if data.startswith("admin:confirm:"):
@@ -245,7 +245,7 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
             data_state = await state.get_data()
             text_to_send = data_state.get("broadcast_text")
             if not text_to_send:
-                await query.answer("Нет текста для рассылки", show_alert=True)
+                await query.answer("No text for broadcast", show_alert=True)
             sent = 0
             failed = 0
             async with LocalSession() as db:
@@ -256,7 +256,7 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
                         sent += 1
                     except Exception:
                         failed += 1
-            await query.message.edit_text(f"Рассылка отправлена. Успешно: {sent}, ошибок: {failed}")
+            await query.message.edit_text(f"Broadcast sent. Successful: {sent}, errors: {failed}")
             await state.clear()
             await query.answer()
             return
@@ -265,9 +265,9 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
             async with LocalSession() as db:
                 ok = await delete_course(db, course_id)
             if ok:
-                await query.message.edit_text("Курс удалён.", reply_markup=admin_kbd.admin_main_kbd())
+                await query.message.edit_text("Course deleted.", reply_markup=admin_kbd.admin_main_kbd())
             else:
-                await query.answer("Не удалось удалить курс", show_alert=True)
+                await query.answer("Failed to delete course", show_alert=True)
             await query.answer()
             return
         if action == "create_course":
@@ -283,7 +283,7 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
                     content_data=course_data.get("content_data", ""),
                     photo_url=course_data.get("photo_url"),
                 )
-            await query.message.edit_text(f"Курс создан: {course.title} (ID: {course.id})", reply_markup=admin_kbd.admin_main_kbd())
+            await query.message.edit_text(f"Course created: {course.title} (ID: {course.id})", reply_markup=admin_kbd.admin_main_kbd())
             await state.clear()
             await query.answer()
             return
@@ -293,7 +293,7 @@ async def admin_callbacks(query: CallbackQuery, state: FSMContext):
 
     if data.startswith("admin:cancel:"):
         await state.clear()
-        await query.message.edit_text("Операция отменена.")
+        await query.message.edit_text("Operation canceled.")
         await query.answer()
         return
 
@@ -310,34 +310,34 @@ async def admin_waiting_message(message: Message, state: FSMContext):
         if target_user:
             try:
                 await message.bot.send_message(target_user, message.text)
-                await message.answer("Сообщение отправлено пользователю.")
+                await message.answer("Message sent to user.")
             except Exception:
-                await message.answer("Не удалось отправить сообщение пользователю.")
+                await message.answer("Failed to send message to user.")
             await state.clear()
             return
         await state.update_data(broadcast_text=message.text)
         await state.set_state(BroadcastStates.waiting_confirm)
-        await message.answer("Превью рассылки:\n" + message.text, reply_markup=admin_kbd.confirm_kbd("broadcast", 0))
+        await message.answer("Broadcast preview:\n" + message.text, reply_markup=admin_kbd.confirm_kbd("broadcast", 0))
         return
 
     if st == CourseCreateStates.wait_title.state:
         await state.update_data(course_data={"title": message.text})
         await state.set_state(CourseCreateStates.wait_price)
-        await message.answer("Введите цену (целое число):")
+        await message.answer("Enter price (integer):")
         return
 
     if st == CourseCreateStates.wait_price.state:
         try:
             price = int(message.text)
         except ValueError:
-            await message.answer("Цена должна быть целым числом. Попробуйте ещё раз:")
+            await message.answer("Price must be an integer. Try again:")
             return
         data_s = await state.get_data()
         course_data = data_s.get("course_data", {})
         course_data["price"] = price
         await state.update_data(course_data=course_data)
         await state.set_state(CourseCreateStates.wait_description)
-        await message.answer("Введите описание курса (или 'skip'):")
+        await message.answer("Enter course description (or 'skip'):")
         return
 
     if st == CourseCreateStates.wait_description.state:
@@ -346,14 +346,14 @@ async def admin_waiting_message(message: Message, state: FSMContext):
         course_data["description"] = None if message.text.lower() == "skip" else message.text
         await state.update_data(course_data=course_data)
         await state.set_state(CourseCreateStates.wait_content_type)
-        await message.answer("Выберите тип содержимого:", reply_markup=admin_kbd.content_type_kbd())
+        await message.answer("Select content type:", reply_markup=admin_kbd.content_type_kbd())
         return
 
     if st == SettingsStates.wait_currency.state:
         from src.bot.app_settings import set_currency
         symbol = message.text.strip()[:4]
         set_currency(symbol)
-        await message.answer(f"Символ валюты установлен: {symbol}")
+        await message.answer(f"Currency symbol set: {symbol}")
         await state.clear()
         return
 
@@ -363,7 +363,7 @@ async def admin_waiting_message(message: Message, state: FSMContext):
         course_data["content_data"] = message.text
         await state.update_data(course_data=course_data)
         await state.set_state(CourseCreateStates.wait_photo)
-        await message.answer("Отправьте изображение обложки курса или URL (или введите 'skip' чтобы пропустить):")
+        await message.answer("Send course cover image or URL (or enter 'skip' to skip):")
         return
 
     if st == CourseCreateStates.wait_photo.state:
@@ -395,7 +395,7 @@ async def admin_waiting_message(message: Message, state: FSMContext):
         from src.bot.app_settings import get_currency
         cur = get_currency()
         preview = (
-            f"Превью курса:\nTitle: {course_data.get('title')}\nPrice: {cur}{course_data.get('price')}\nDescription: {course_data.get('description') or ''}\nContent type: {course_data.get('content_type')}\nContent: {course_data.get('content_data')[:200]}\nPhoto: {'yes' if course_data.get('photo_url') else 'no'}"
+            f"Course preview:\nTitle: {course_data.get('title')}\nPrice: {cur}{course_data.get('price')}\nDescription: {course_data.get('description') or ''}\nContent type: {course_data.get('content_type')}\nContent: {course_data.get('content_data')[:200]}\nPhoto: {'yes' if course_data.get('photo_url') else 'no'}"
         )
         await message.answer(preview, reply_markup=admin_kbd.confirm_kbd("create_course", 0))
         return

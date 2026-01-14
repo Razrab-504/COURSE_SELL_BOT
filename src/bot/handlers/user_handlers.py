@@ -21,10 +21,10 @@ user_router.message.filter(IsUser())
 
 @user_router.message(CommandStart())
 async def start_cmd(message: Message):
-    await message.answer("Привет это бот в котором ты можешь купить курсы. Выбери одну из следующих кнопок", reply_markup=menu_kbd)
+    await message.answer("Hello, this is a bot where you can buy courses. Choose one of the following buttons", reply_markup=menu_kbd)
 
 
-@user_router.message(F.text == "Просмотреть курсы")
+@user_router.message(F.text == "View courses")
 async def get_courses(message: Message):
     
     async with LocalSession() as session:
@@ -33,11 +33,11 @@ async def get_courses(message: Message):
         if courses:
             for course in courses:
                 text = (
-                    f"<b>Название курса</b>: {course.title}\n"
-                    f"<b>Описание курса</b>: {course.description}\n"
-                    f"<b>Цена курса</b>: {course.price} $\n"
-                    f"<b>Тип контента курса</b>: {course.content_type.value}\n"
-                    f"<b>Время создания</b>: {course.created_at}"
+                    f"<b>Course title</b>: {course.title}\n"
+                    f"<b>Course description</b>: {course.description}\n"
+                    f"<b>Course price</b>: {course.price} $\n"
+                    f"<b>Course content type</b>: {course.content_type.value}\n"
+                    f"<b>Creation time</b>: {course.created_at}"
                 )
 
                 
@@ -51,7 +51,7 @@ async def get_courses(message: Message):
                 else:
                     await message.answer(text, parse_mode="HTML", reply_markup=buy_course_kbd(course.id))
         else:
-            await message.answer("Курсов пока что нету")
+            await message.answer("There are no courses yet")
 
 
 @user_router.callback_query(F.data.startswith("buy_course"))
@@ -65,7 +65,7 @@ async def buy_course_cb(call: CallbackQuery):
         paid_purchase = await get_paid_purchase_by_course(db=session, user_id=db_user.id, course_id=course_id)
         if paid_purchase:
             await call.message.answer(
-                "Вы уже приобрели этот курс. Для доступа к курсам используйте 'Просмотреть купленные курсы'.",
+                "You have already purchased this course. To access courses, use 'View purchased courses'.",
                 reply_markup=menu_kbd,
             )
             return
@@ -73,7 +73,7 @@ async def buy_course_cb(call: CallbackQuery):
         purchase = await create_purchases(db=session, user_id=db_user.id, course_id=course_id, status=Status.PENDING)
         course = await get_course_by_id(db=session, course_id=course_id)
         
-    await call.message.answer("💳 Оплатить курс", reply_markup=buy_course(purchase))
+    await call.message.answer("💳 Pay for course", reply_markup=buy_course(purchase))
     
     
 
@@ -87,19 +87,19 @@ async def pay_test(call: CallbackQuery):
         await session.commit()
 
     await call.message.answer(
-        "✅ Оплата прошла успешно (TEST MODE)\n"
-        "🎓 Доступ к курсу открыт"
+        "✅ Payment successful (TEST MODE)\n"
+        "🎓 Course access opened"
     )
 
 
-@user_router.message(F.text == "Просмотреть купленные курсы")
+@user_router.message(F.text == "View purchased courses")
 async def show_paid_courses(message: Message):
     async with LocalSession() as session:
         db_user = await get_or_create_user(db=session, telegram_user=message.from_user)
         purchases = await get_paid_purchase(db=session, user_id=db_user.id)
 
         if not purchases:
-            await message.answer("У вас пока что нет приобретённых курсов.")
+            await message.answer("You have no purchased courses yet.")
             return
 
         buttons = []
@@ -109,25 +109,25 @@ async def show_paid_courses(message: Message):
                 continue
             buttons.append([KeyboardButton(text=course.title)])
 
-        buttons.append([KeyboardButton(text="Назад")])
+        buttons.append([KeyboardButton(text="Back")])
 
         keyboard = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-        await message.answer("Выберите курс:", reply_markup=keyboard)
+        await message.answer("Select a course:", reply_markup=keyboard)
 
 
 @user_router.message(F.text == "Info")
 async def info_cmd(message: Message):
     text = (
-        "ℹ️ <b>Информация о боте</b>\n\n"
-        "Этот бот предназначен для покупки и просмотра онлайн-курсов 📚\n\n"
-        "Здесь вы можете:\n"
-        "• посмотреть доступные курсы\n"
-        "• узнать описание и цену\n"
-        "• приобрести курс\n"
-        "• получить доступ к материалам после оплаты\n\n"
-        "💳 <b>Оплата работает в тестовом режиме</b>\n"
-        "Данный бот является демонстрационным проектом. "
-        "Покупка курсов имитирует реальный процесс оплаты, деньги не списываются."
+        "ℹ️ <b>Bot Information</b>\n\n"
+        "This bot is designed for purchasing and viewing online courses 📚\n\n"
+        "Here you can:\n"
+        "• view available courses\n"
+        "• learn description and price\n"
+        "• purchase a course\n"
+        "• access materials after payment\n\n"
+        "💳 <b>Payment works in test mode</b>\n"
+        "This bot is a demonstration project. "
+        "Purchasing courses simulates the real payment process, money is not charged."
     )
 
     await message.answer(text, parse_mode="HTML")
@@ -150,12 +150,12 @@ async def send_course_content(message: Message):
 
         if not purchase:
             await message.answer(
-                "У вас нет доступа к этому курсу. Чтобы приобрести — перейдите в 'Просмотреть курсы'.",
+                "You do not have access to this course. To purchase, go to 'View courses'.",
                 reply_markup=menu_kbd,
             )
             return
 
-        await message.answer("Отправляю контент курса...", reply_markup=ReplyKeyboardRemove())
+        await message.answer("Sending course content...", reply_markup=ReplyKeyboardRemove())
 
         if course.content_type == ContentType.PDF:
             if course.content_data.startswith("http"):
@@ -173,9 +173,9 @@ async def send_course_content(message: Message):
                     return
                 except Exception:
                     pass
-            await message.answer(f"Видео:\n{course.content_data}")
+            await message.answer(f"Video:\n{course.content_data}")
 
         else:
-            await message.answer(f"Ссылка/контент:\n{course.content_data}")
+            await message.answer(f"Link/content:\n{course.content_data}")
         
         

@@ -2,7 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardBut
 
 menu_kbd = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="Просмотреть курсы"), KeyboardButton(text="Просмотреть купленные курсы")],
+        [KeyboardButton(text="View courses"), KeyboardButton(text="View purchased courses")],
         [KeyboardButton(text="Info")]
     ],
     resize_keyboard=True
@@ -14,7 +14,7 @@ def buy_course_kbd(course_id: int):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="💳 Приобрести курс",
+                    text="💳 Purchase course",
                     callback_data=f"buy_course:{course_id}"
                 )
             ]
@@ -26,7 +26,7 @@ def buy_course_kbd(course_id: int):
 def buy_course(purchase):
     inline_keyboard=InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Оплатить (TEST)",
+            [InlineKeyboardButton(text="✅ Pay (TEST)",
                         callback_data=f"pay_test:{purchase.id}")]
         ]
     )
